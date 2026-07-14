@@ -15,8 +15,11 @@ const memory: Message[] = [];
 export async function quoteAgent(input: QuoteRequest): Promise<QuoteResponse> {
   const messages: Message[] = [...memory];
 
-  const context = await retrieveKnowledge(input);
-  messages.push(...context);
+  const policyContext = await retrievePolicyDocuments();
+  const customerContext = await retrieveCustomerDocuments();
+
+  messages.push(...policyContext);
+  messages.push(...customerContext);
 
   messages.push({
     role: "user",
@@ -47,36 +50,15 @@ export async function quoteAgent(input: QuoteRequest): Promise<QuoteResponse> {
   };
 }
 
-async function retrieveKnowledge(_: QuoteRequest): Promise<Message[]> {
-  const documents = [
-    "Collision deductible: USD 500.",
-    "Theft coverage included.",
-    "Glass coverage included.",
-    "Vehicle: 2022 Toyota Corolla.",
-    "Owner: John Doe.",
-    "Claim opened on 2023-08-10.",
-    "Claim status: Closed.",
-    "Roadside assistance included.",
-    "Rental car coverage up to 30 days.",
-    "Policy expires on 2027-01-01.",
-  ];
-
-  return documents.map((content) => ({
-    role: "assistant",
-    content,
-  }));
-}
 async function llm(_: {
   system: string;
   messages: Message[];
 }): Promise<LlmResponse> {
   const responses = [
     "Your deductible is USD 500.",
-    "The policy has a USD 500 deductible.",
+    "The deductible is USD 1,000.",
     "You would pay the first USD 500 before coverage applies.",
-    "The deductible amount is USD 500.",
   ];
-
   const index = Math.floor(Math.random() * responses.length);
 
   return {
@@ -94,5 +76,39 @@ function persistMessage(userInput: string, answer: string) {
       role: "assistant",
       content: answer,
     },
+  );
+}
+
+async function retrievePolicyDocuments(): Promise<Message[]> {
+  const documents = [
+    "Policy version 2024: Collision deductible: USD 500.",
+    "Policy version 2025: Collision deductible: USD 1,000.",
+    "Theft coverage included.",
+    "Glass coverage included.",
+    "Roadside assistance included.",
+    "Rental car coverage up to 30 days.",
+    "Policy expires on 2027-01-01.",
+  ];
+
+  return documents.map(
+    (content): Message => ({
+      role: "assistant",
+      content,
+    }),
+  );
+}
+
+async function retrieveCustomerDocuments(): Promise<Message[]> {
+  const documents = [
+    "Vehicle: 2022 Toyota Corolla.",
+    "Owner: John Doe.",
+    "Driver age: 35.",
+  ];
+
+  return documents.map(
+    (content): Message => ({
+      role: "assistant",
+      content,
+    }),
   );
 }
